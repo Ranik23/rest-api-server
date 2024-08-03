@@ -1,17 +1,18 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"url-shortener/internal/config"
+	"url-shortener/internal/http-server/handlers/url/save"
 	"url-shortener/internal/http-server/middleware/logger"
 	"url-shortener/internal/lib/logger/sl"
 	"url-shortener/internal/storage/sqlite"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"url-shortener/internal/http-server/handlers/url/save"
 )
 
 
@@ -22,8 +23,10 @@ import (
 func main() {
 
 	cfg := config.MustLoad()
-	fmt.Println(cfg)
+	//fmt.Println(cfg)
+
 	log := sl.SetUpLogger(cfg.Env)
+	
 	log = log.With(slog.String("env", cfg.Env))
 
 	dataBase, err := sqlite.New(cfg.StoragePath)
@@ -40,6 +43,9 @@ func main() {
 	router.Use(middleware.Recoverer)
 
 	router.Handle("/", save.New(log, dataBase))
+
+
+	http.ListenAndServe("localhost:8080", router)
 
 	//router.Use(middleware.URLFormat)
 
