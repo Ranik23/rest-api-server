@@ -116,7 +116,7 @@ func (s * Storage) DeleteURL(alias string) error {
 	_, err = statement.Exec(alias)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if sqliteError, ok := err.(sqlite3.Error); ok && sqliteError.ExtendedCode == sqlite3.ErrNoExtended(sqlite3.ErrNotFound) {
 			return storage.ErrURLNotFound
 		}
 		return fmt.Errorf("%s: %w", op, err)
