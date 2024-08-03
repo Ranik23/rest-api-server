@@ -33,13 +33,13 @@ func New(storagePath string) (*Storage, error) {
 	`)
 
 	if err != nil {
-		return nil, fmt.Errorf("#{op}: #{err}")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	_, err = statement.Exec()
 
 	if err != nil {
-		return nil, fmt.Errorf("#{op}: #{err}")
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &Storage{db : db}, nil

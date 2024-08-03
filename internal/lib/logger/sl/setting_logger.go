@@ -26,5 +26,7 @@ func SetUpLogger(env string) *slog.Logger{
 		logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	}
 
+	logger.Info("logger is set up")
+
 	return logger
 }
