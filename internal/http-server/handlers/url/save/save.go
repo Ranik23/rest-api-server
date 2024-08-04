@@ -12,9 +12,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
+	"url-shortener/internal/lib/logger/sl"
 )
-
-
 
 type Request struct {
 	URL   string `json:"url" validate:"required,url"`
@@ -23,7 +22,7 @@ type Request struct {
 
 type Response struct {
 	resp.Response
-	Alias string  `json:"alias,omitempty"`
+	Alias string `json:"alias,omitempty"`
 }
 
 //const aliasLength = 4
@@ -49,14 +48,14 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 		err := render.DecodeJSON(r.Body, &req)
 
 		if errors.Is(err, io.EOF) {
-			log.Error("request body is empty", err)
+			log.Error("request body is empty", sl.Err(err)) // :
 			render.JSON(w, r, resp.Error("empty request"))
 
 			return
 		}
 
 		if err != nil {
-			log.Error("failed to decode request body", err)
+			log.Error("failed to decode request body", sl.Err(err)) // TODO:
 
 			render.JSON(w, r, resp.Error("failed to decode request"))
 
@@ -68,26 +67,32 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 		if err := validator.New().Struct(&req); err != nil {
 			validateError := err.(validator.ValidationErrors)
 
-			log.Error("invalid request", err)
+			log.Error("invalid request", sl.Err(err)) // TODO:
 			render.JSON(w, r, resp.ValidationError(validateError))
 
 			return
 		}
 
-		//TODO
+		// TODO: уащцуща
 
-		// alias := req.Alias
+		alias := req.Alias
 
 		// if alias == "" {
 		// 	alias = random
 		// }
 
-		id, err := urlSaver.SaveURL(req.URL, req.Alias); _ = id
+		id, err := urlSaver.SaveURL(req.URL, alias)
+		_ = id
 
 		if errors.Is(err, storage.ErrURLExists) {
 			log.Info("url already exists", slog.String("url", req.URL))
 			render.JSON(w, r, resp.Error("url already exists"))
 			return
 		}
+
+		render.JSON(w, r, Response{
+			Response: resp.OK(),
+			Alias:    alias,
+		})
 	}
 }
