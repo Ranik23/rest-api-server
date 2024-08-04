@@ -6,13 +6,12 @@ import (
 	"log/slog"
 	"net/http"
 	resp "url-shortener/internal/lib/api/response"
-	//"url-shortener/internal/storage"
+	"url-shortener/internal/storage"
 
+	//"url-shortener/internal/lib/random"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-playground/validator/v10"
-
-	//"github.com/unrolled/render"
 	"github.com/go-chi/render"
+	"github.com/go-playground/validator/v10"
 )
 
 
@@ -26,6 +25,8 @@ type Response struct {
 	resp.Response
 	Alias string  `json:"alias,omitempty"`
 }
+
+//const aliasLength = 4
 
 type URLSaver interface {
 	SaveURL(urlToSave string, alias string) (int64, error)
@@ -68,17 +69,24 @@ func New(log *slog.Logger, urlSaver URLSaver) http.HandlerFunc {
 			validateError := err.(validator.ValidationErrors)
 
 			log.Error("invalid request", err)
-
-			render.JSON(w, r, resp.Error("invalid request"))
 			render.JSON(w, r, resp.ValidationError(validateError))
 
 			return
 		}
 
-		code, err := urlSaver.SaveURL(req.URL, req.URL); _ = code
+		//TODO
 
-		if err != nil {
-			log.Error("failed to save the user", err)
+		// alias := req.Alias
+
+		// if alias == "" {
+		// 	alias = random
+		// }
+
+		id, err := urlSaver.SaveURL(req.URL, req.Alias); _ = id
+
+		if errors.Is(err, storage.ErrURLExists) {
+			log.Info("url already exists", slog.String("url", req.URL))
+			render.JSON(w, r, resp.Error("url already exists"))
 			return
 		}
 	}
