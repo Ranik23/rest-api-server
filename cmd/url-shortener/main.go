@@ -5,7 +5,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"url-shortener/internal/config"
+	"url-shortener/internal/http-server/handlers/url/get"
 	"url-shortener/internal/http-server/handlers/url/save"
 	"url-shortener/internal/http-server/middleware/logger"
 	"url-shortener/internal/lib/logger/sl"
@@ -42,12 +44,31 @@ func main() {
 	router.Use(logger.Logger)
 	router.Use(middleware.Recoverer)
 
-	router.Handle("/", save.New(log, dataBase))
+	router.Handle("/save", save.New(log, dataBase))
+	router.Handle("/get", get.New(log, dataBase))
 
 
-	http.ListenAndServe("localhost:8080", router)
+	srv := &http.Server{
+		Addr: cfg.Address,
+		Handler: router,
+		ReadTimeout: cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout: cfg.HTTPServer.IdleTimeout,
+	}
 
-	//router.Use(middleware.URLFormat)
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			log.Error("failed to establish connection to the server", sl.Err(err))
+			return
+		}
+	}()
 
 
+	c := make(chan os.Signal, 1)
+
+	signal.Notify(c, os.Interrupt)
+
+	s := <-c; _ = s 
+
+	log.Info("app interrupted by a signal")
 }
